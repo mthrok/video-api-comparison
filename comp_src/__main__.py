@@ -16,6 +16,10 @@ def _parse_args(test_choices):
         required=True,
         choices=test_choices,
         help="The name of the test.")
+    parser.add_argument(
+        "--tv-backend",
+        default="video_reader",
+    )
     return parser.parse_args()
 
 
@@ -45,6 +49,11 @@ def _main():
     }
 
     args = _parse_args(tests.keys())
+
+    import torchvision
+
+    torchvision.set_video_backend(args.tv_backend)
+
     tests[args.test](args.data)
 
 

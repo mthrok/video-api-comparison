@@ -2,6 +2,15 @@
 
 set -ue
 
+printf "TorchVision %s\n" "$(python -c 'import torchvision;print(torchvision.__version__)')"
+printf "TorchAudio %s\n" "$(python -c 'import torchaudio;print(torchaudio.__version__)')"
+printf "FFmpeg versions:\n%s\n" "$(python -c '''
+import torchaudio
+for k, v in torchaudio.utils.ffmpeg_utils.get_versions().items():
+    print(f"  {k}: {v}")
+''')"
+
+
 mkdir -p data
 
 files=()
@@ -17,7 +26,7 @@ for ext in avi mp4; do
     done
 done
 
-backends=("pyav")
+backends=()
 if [[ $(uname) != "Darwin" ]]; then
     backends+=("video_reader")
 fi
@@ -26,13 +35,15 @@ printf "***********************\n"
 printf "Test stream\n"
 printf "***********************\n"
 
-printf "Verifying that the test functions produce identical results... "
+printf "Verifying that the test functions produce identical results... \n"
 for file in "${files[@]}"; do
-    python -m comp_src  --test stream --data "${file}"
+    printf "%s... " "${file}"
+    python -m comp_src  --test stream --data "${file}" --tv-backend="video_reader"
+    printf "OK\n"
 done
-printf "OK\n"
+printf "\n"
 
-printf "Testing TorchAudio\n"
+printf "Testing TorchAudio\n" 
 for file in "${files[@]}"; do
     printf "%s\t" "${file}"
 
@@ -47,9 +58,10 @@ ta.test_stream(\"${file}\")
 done
 
 for backend in "${backends[@]}"; do
-    printf "Testing TorchVision - %s\n" "${backend}"
+    printf "Testing TorchVision (%s)\n" "${backend}"
+
     for file in "${files[@]}"; do
-        printf "TorchVision (pyav)\t%s\t" "${file}"
+        printf "%s\t" "${file}"
         python3 -m timeit \
                 --setup \
 """
@@ -61,4 +73,5 @@ torchvision.set_video_backend(\"${backend}\")
 tv.test_stream(\"${file}\")
 """
     done
+    printf "\n"
 done
