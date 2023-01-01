@@ -5,11 +5,11 @@ def _verify(ta_chunks, tv_chunks):
     assert len(tv_chunks) > 0
     assert len(ta_chunks) == len(tv_chunks)
 
-    print(f"Decoded {sum(len(c) for c in ta_chunks)} frames. ", end="")
+    print(f"Decoded {sum(len(c) for c in ta_chunks)} frames. ({len(ta_chunks)} chunks)", end="")
 
     for i, (ta_chunk, tv_chunk) in enumerate(zip(ta_chunks, tv_chunks)):
         try:
-            torch.testing.assert_close(ta_chunk, ta_chunk)
+            torch.testing.assert_close(ta_chunk, tv_chunk)
         except AssertionError:
             for t in range(ta_frame.size(0)):
                 ta_frame = ta_chunk[t].permute((1, 2, 0))
@@ -29,17 +29,18 @@ def _verify_stream(args):
             "--data",
             required=True,
             help="Path to the video data used for verification")
+        parser.add_argument(
+            "--frames-per-chunk",
+            type=int,
+            default=1)
         return parser.parse_args(args)
 
     ns = _parse_args(args)
 
     from . import ta, tv
 
-    ta_chunks = ta.test_stream(ns.data)
-    tv_chunks = tv.test_stream(ns.data)
-
-    # TV does not have time axis. Fix that here.
-    tv_chunks = [c.unsqueeze(0) for c in tv_chunks]
+    ta_chunks = ta.test_stream(ns.data, ns.frames_per_chunk)
+    tv_chunks = tv.test_stream(ns.data, ns.frames_per_chunk)
 
     _verify(ta_chunks, tv_chunks)
 
