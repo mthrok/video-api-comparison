@@ -239,19 +239,22 @@ if [ ! -z "${TEST_RANDOM_ACCESS-1}" ]; then
 
     if [ ! -z "${VERIFY_FUNC-}" ] ; then
         printf "Verifying that the test functions produce identical results... \n"
+        failed=0
         for i in $(seq $((${#files[@]} - 1))); do
             file="${files[i]}"
             ts="${timestamps[i]}"
             printf -v ts_ "%s," ${ts}
-            printf "%s (%s) ... " "${file}" "${ts_}"
+            printf "%s (%s) ... \n" "${file}" "${ts_}"
             python3 -m comp_src \
                     --test random \
                     --tv-backend="video_reader" \
                     -- \
                     --data "${file}" \
-                    --timestamps ${ts}
-            printf "OK\n"
+                    --timestamps ${ts} || failed=1
         done
+        if [ "$failed" -ne 0 ] ; then
+            exit 1
+        fi
         printf "\n"
     fi
 
