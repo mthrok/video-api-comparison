@@ -28,9 +28,10 @@ if [ ! -z "${TEST_STREAM-1}" ]; then
     printf "Test streaming\n"
     printf "***********************\n"
 
-    files=()
     for ext in avi mp4; do
-        for duration in 1 5 10 30 60 300; do
+        printf "Testing %s\n" "${ext}"
+        files=()
+        for duration in 1 3 6 30 60 300; do
             file="data/test_stream_${duration}.${ext}"
             files+=("${file}")
 
@@ -39,47 +40,47 @@ if [ ! -z "${TEST_STREAM-1}" ]; then
                 ffmpeg -hide_banner -f lavfi -t "${duration}" -i testsrc "${file}" > /dev/null 2>&1
             fi
         done
-    done
 
-    if [ ! -z "${VERIFY_FUNC-}" ] ; then
-        printf "Verifying that the test functions produce identical results... \n"
-        for file in "${files[@]}"; do
-            for fpc in 1 3 10; do
-                printf "%s (%s)... " "${file}" "${fpc}"
-                python3 -m comp_src  --test stream --tv-backend="video_reader" -- --data "${file}" --frames-per-chunk "${fpc}"
-                printf " OK\n"
+        if [ ! -z "${VERIFY_FUNC-}" ] ; then
+            printf "Verifying that the test functions produce identical results... \n"
+            for file in "${files[@]}"; do
+                for fpc in 1 3 10; do
+                    printf "%s (%s)... " "${file}" "${fpc}"
+                    python3 -m comp_src  --test stream --tv-backend="video_reader" -- --data "${file}" --frames-per-chunk "${fpc}"
+                    printf " OK\n"
+                done
             done
-        done
-        printf "\n"
-    fi
+            printf "\n"
+        fi
 
-    printf "Testing TorchAudio\n" 
-    for file in "${files[@]}"; do
+        printf "Testing TorchAudio\n" 
         for fpc in 1 3 10; do
-            printf "%s (%s)\t" "${file}" "${fpc}"
-        
-            python3 -m timeit \
-                    --unit msec \
-                    --setup \
+            for file in "${files[@]}"; do
+                printf "%s (fpc: %s)\t" "${file}" "${fpc}"
+                
+                python3 -m timeit \
+                        --unit msec \
+                        --setup \
 """
-from comp_src import ta
+from comp_src import ta 
+ta.test_stream(\"${file}\", ${fpc})  # warming up
 """ \
 """
 ta.test_stream(\"${file}\", ${fpc})
 """
+            done
         done
-    done
-    printf "\n"
+        printf "\n"
 
-    for backend in "${backends[@]}"; do
-        printf "Testing TorchVision (%s)\n" "${backend}"
+        for backend in "${backends[@]}"; do
+            printf "Testing TorchVision (%s)\n" "${backend}"
 
-        for file in "${files[@]}"; do
             for fpc in 1 3 10; do
-                printf "%s (%s)\t" "${file}" "${fpc}"
-                python3 -m timeit \
-                        --unit msec \
-                        --setup \
+                for file in "${files[@]}"; do
+                    printf "%s (fpc: %s)\t" "${file}" "${fpc}"
+                    python3 -m timeit \
+                            --unit msec \
+                            --setup \
 """
 from comp_src import tv
 import torchvision
@@ -88,9 +89,10 @@ torchvision.set_video_backend(\"${backend}\")
 """
 tv.test_stream(\"${file}\", ${fpc})
 """
+                done
             done
+            printf "\n"
         done
-        printf "\n"
     done
 fi # TEST_STREAM
 
@@ -102,7 +104,7 @@ if [ ! -z "${TEST_SEEK-1}" ]; then
 
     files=()
     for keyint in 250; do
-        for ext in "mp4" "avi"; do
+        for ext in "avi" "mp4"; do
             file="data/test_seek_${keyint}.${ext}"
             files+=("${file}")
 
