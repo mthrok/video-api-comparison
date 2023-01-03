@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+for threading in 0 1 2 4 8; do
+    if [ ${threading} == 0 ]; then
+        cpus=24
+    else
+        cpus=${threading}
+    fi
+    output="log/$(date +"%Y-%m-%dT%H-%M-%S")"
+    mkdir -p "${output}"
+    sbatch \
+        --job-name=video-bench \
+        --ntasks=1 \
+        --partition dev \
+        --time=03:00:00 \
+        --cpus-per-task="${cpus}" \
+        --output="${output}/thread_${threading}.log" \
+        ./perf.sh "${threading}"
+done
