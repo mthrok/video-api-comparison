@@ -16,6 +16,10 @@ def _parse_args(test_choices):
         required=True,
         choices=test_choices,
         help="The name of the test.")
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+    )
     parser.add_argument('rest', nargs='*')
     return parser.parse_args()
 
@@ -34,7 +38,7 @@ def _main():
 
     torchvision.set_video_backend(ns.tv_backend)
 
-    tests[ns.test](ns.rest)
+    tests[ns.test](ns.rest, ns.plot)
 
 
 if __name__ == "__main__":

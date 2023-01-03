@@ -1,7 +1,7 @@
 import os
 
 
-def _verify(ta_chunks, tv_chunks, tmp_path):
+def _verify(ta_chunks, tv_chunks, tmp_path, plot):
     import torch
 
     assert len(ta_chunks) > 0
@@ -15,11 +15,14 @@ def _verify(ta_chunks, tv_chunks, tmp_path):
         try:
             torch.testing.assert_close(ta_chunk, tv_chunk)
         except AssertionError:
-            os.makedirs(tmp_path, exist_ok=True)
-            for t in range(ta_chunk.size(0)):
-                ta_frame = ta_chunk[t].permute((1, 2, 0))
-                tv_frame = tv_chunk[t].permute((1, 2, 0))
-                plot_frames(ta_frame, tv_frame, f"{tmp_path}/chunk_{i}_frame_{t}.png")
+            if plot:
+                os.makedirs(tmp_path, exist_ok=True)
+                for t in range(ta_chunk.size(0)):
+                    ta_frame = ta_chunk[t].permute((1, 2, 0))
+                    tv_frame = tv_chunk[t].permute((1, 2, 0))
+                    plot_frames(ta_frame, tv_frame, f"{tmp_path}/chunk_{i}_frame_{t}.png")
+            else:
+                raise
             success = False
     if not success:
         raise RuntimeError(
@@ -30,7 +33,7 @@ def _slugify(string):
     return string.replace("/", "_").replace(" ", "_")
 
 
-def _verify_stream(args):
+def _verify_stream(args, plot=False):
 
     def _parse_args(args):
         import argparse
@@ -52,13 +55,14 @@ def _verify_stream(args):
     from . import ta, tv
 
     ta_chunks = ta.test_stream(ns.data, ns.frames_per_chunk)
-    tv_chunks = tv.test_stream(ns.data, ns.frames_per_chunk)
+    tv_chunks = tv.test_stream(ns.data)
+    tv_chunks = [c.unsqueeze(0) for c in tv_chunks]
 
     tmp_path = f"tmp/{_slugify(ns.data)}_{ns.frames_per_chunk}"
-    _verify(ta_chunks, tv_chunks, tmp_path)
+    _verify(ta_chunks, tv_chunks, tmp_path, plot)
 
 
-def _verify_random(args):
+def _verify_random(args, plot=False):
 
     def _parse_args(args):
         import argparse
@@ -86,7 +90,7 @@ def _verify_random(args):
     tv_chunks = tv.test_random(ns.data, *ns.timestamps)
 
     tmp_path = f"tmp/{_slugify(ns.data)}_{'_'.join(str(ts) for ts in ns.timestamps)}"
-    _verify(ta_chunks, tv_chunks, tmp_path)
+    _verify(ta_chunks, tv_chunks, tmp_path, plot)
 
 
 def plot_frames(ta_frame, tv_frame, path):
