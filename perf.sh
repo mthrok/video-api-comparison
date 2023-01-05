@@ -16,6 +16,7 @@ for k, v in torchaudio.utils.ffmpeg_utils.get_versions().items():
     print(f'#     {k}: {v}')
 print('# TorchVision: ', torchvision.__version__)
 """
+printf "Benchmark code: %s\n" "$(git rev-parse --short @)"
 printf "# nprocs: %s\n" "$(nproc)"
 printf "# threads: %s\n" "${num_threads}"
 
